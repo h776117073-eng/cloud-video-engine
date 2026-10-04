@@ -1,0 +1,100 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Cloud Video Engine API",
+    "version": "1.0.0",
+    "description": "Render motion graphics with Remotion or edit clips with FFmpeg."
+  },
+  "servers": [{"url": "https://REPLACE-WITH-RENDER-HOST.onrender.com"}],
+  "security": [{"BearerAuth": []}],
+  "paths": {
+    "/health": {
+      "get": {
+        "operationId": "healthCheck",
+        "summary": "Check API health",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Healthy service",
+            "content": {"application/json": {"schema": {
+              "type": "object",
+              "required": ["ok", "service"],
+              "properties": {"ok": {"type": "boolean"}, "service": {"type": "string"}}
+            }}}
+          }
+        }
+      }
+    },
+    "/api/v1/render": {
+      "post": {
+        "operationId": "renderVideo",
+        "summary": "Render motion graphics or edit clips",
+        "description": "Synchronous render endpoint. Public HTTPS input media only; up to 8 clips and 250 MB per source.",
+        "requestBody": {
+          "required": true,
+          "content": {"application/json": {"schema": {"oneOf": [
+            {
+              "type": "object",
+              "required": ["projectType", "motionProps"],
+              "properties": {
+                "projectType": {"const": "motion"},
+                "motionProps": {
+                  "type": "object",
+                  "required": ["titles"],
+                  "properties": {
+                    "titles": {"type": "array", "minItems": 1, "maxItems": 8, "items": {"type": "string", "minLength": 1, "maxLength": 160}},
+                    "primaryColor": {"type": "string", "pattern": "^#[0-9a-fA-F]{6}$", "default": "#6C5CE7"},
+                    "durationSeconds": {"type": "number", "minimum": 3, "maximum": 30, "default": 8},
+                    "animationStyle": {"type": "string", "enum": ["fade", "slide", "zoom"], "default": "fade"},
+                    "subtitle": {"type": "string", "maxLength": 300},
+                    "width": {"type": "integer", "minimum": 640, "maximum": 1920, "default": 1920},
+                    "height": {"type": "integer", "minimum": 360, "maximum": 1080, "default": 1080},
+                    "fps": {"type": "integer", "minimum": 24, "maximum": 60, "default": 30}
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "required": ["projectType", "editProps"],
+              "properties": {
+                "projectType": {"const": "edit"},
+                "editProps": {
+                  "type": "object",
+                  "required": ["clips"],
+                  "properties": {
+                    "clips": {
+                      "type": "array", "minItems": 1, "maxItems": 8,
+                      "items": {
+                        "type": "object", "required": ["url", "endSeconds"],
+                        "properties": {
+                          "url": {"type": "string", "format": "uri", "pattern": "^https://"},
+                          "startSeconds": {"type": "number", "minimum": 0, "default": 0},
+                          "endSeconds": {"type": "number", "exclusiveMinimum": 0}
+                        }
+                      }
+                    },
+                    "audioUrl": {"type": "string", "format": "uri", "pattern": "^https://"},
+                    "audioVolume": {"type": "number", "minimum": 0, "maximum": 1, "default": 0.8},
+                    "outputWidth": {"type": "integer", "minimum": 640, "maximum": 1920, "default": 1920},
+                    "outputHeight": {"type": "integer", "minimum": 360, "maximum": 1080, "default": 1080},
+                    "fps": {"type": "integer", "minimum": 24, "maximum": 60, "default": 30}
+                  }
+                }
+              }
+            }
+          ]}}}
+        },
+        "responses": {
+          "200": {"description": "Rendered video URL returned"},
+          "400": {"description": "Invalid request"},
+          "401": {"description": "Missing or invalid bearer key"},
+          "500": {"description": "Rendering or upload failed"}
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {"BearerAuth": {"type": "http", "scheme": "bearer", "bearerFormat": "API key"}}
+  }
+}
