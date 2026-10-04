@@ -43,14 +43,17 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Validate render inputs
+        env:
+          INPUT_SCRIPT_PATH: ${{ inputs.script_path }}
+          INPUT_SCRIPT_BASE64: ${{ inputs.script_base64 }}
         shell: bash
         run: |
           set -euo pipefail
-          if [[ -n "${{ inputs.script_path }}" && -n "${{ inputs.script_base64 }}" ]]; then
+          if [[ -n "${INPUT_SCRIPT_PATH}" && -n "${INPUT_SCRIPT_BASE64}" ]]; then
             echo "Provide only one of script_path or script_base64." >&2
             exit 2
           fi
-          if [[ -z "${{ inputs.script_path }}" && -z "${{ inputs.script_base64 }}" ]]; then
+          if [[ -z "${INPUT_SCRIPT_PATH}" && -z "${INPUT_SCRIPT_BASE64}" ]]; then
             echo "One of script_path or script_base64 is required." >&2
             exit 2
           fi
@@ -62,19 +65,19 @@ jobs:
             echo "blender_version must look like X.Y.Z." >&2
             exit 2
           fi
-          mkdir -p "${OUTPUT_DIR}" "${RUNNER_TOOL_CACHE}/blender/${BLENDER_VERSION}"
+          mkdir -p "${OUTPUT_DIR}" "/home/runner/.cache/blender/${BLENDER_VERSION}"
 
       - name: Restore Blender cache
         uses: actions/cache@v4
         with:
-          path: ${{ runner.tool_cache }}/blender/${{ inputs.blender_version }}
+          path: /home/runner/.cache/blender
           key: ${{ runner.os }}-blender-${{ inputs.blender_version }}-linux-x64-v1
 
       - name: Install Blender
         shell: bash
         run: |
           set -euo pipefail
-          CACHE_ROOT="${RUNNER_TOOL_CACHE}/blender/${BLENDER_VERSION}"
+          CACHE_ROOT="/home/runner/.cache/blender/${BLENDER_VERSION}"
           INSTALL_DIR="${CACHE_ROOT}/blender-${BLENDER_VERSION}-linux-x64"
           ARCHIVE="${CACHE_ROOT}/blender-${BLENDER_VERSION}-linux-x64.tar.xz"
           URL="https://download.blender.org/release/Blender${BLENDER_VERSION%.*}/blender-${BLENDER_VERSION}-linux-x64.tar.xz"
@@ -96,15 +99,18 @@ jobs:
 
       - name: Prepare Blender script
         id: prepare
+        env:
+          INPUT_SCRIPT_PATH: ${{ inputs.script_path }}
+          INPUT_SCRIPT_BASE64: ${{ inputs.script_base64 }}
         shell: bash
         run: |
           set -euo pipefail
           SCRIPT_FILE="${RUNNER_TEMP}/render_script.py"
 
-          if [[ -n "${{ inputs.script_base64 }}" ]]; then
-            printf '%s' "${{ inputs.script_base64 }}" | base64 --decode > "${SCRIPT_FILE}"
+          if [[ -n "${INPUT_SCRIPT_BASE64}" ]]; then
+            printf '%s' "${INPUT_SCRIPT_BASE64}" | base64 --decode > "${SCRIPT_FILE}"
           else
-            SCRIPT_PATH="${{ inputs.script_path }}"
+            SCRIPT_PATH="${INPUT_SCRIPT_PATH}"
             case "${SCRIPT_PATH}" in
               /*|../*|*/../*|*'..\\'*) echo "script_path must stay inside the repository." >&2; exit 2 ;;
             esac
@@ -121,7 +127,7 @@ jobs:
           BLENDER_OUTPUT: ${{ env.OUTPUT_DIR }}/${{ env.OUTPUT_NAME }}
         run: |
           set -euo pipefail
-          CACHE_ROOT="${RUNNER_TOOL_CACHE}/blender/${BLENDER_VERSION}"
+          CACHE_ROOT="/home/runner/.cache/blender/${BLENDER_VERSION}"
           INSTALL_DIR="${CACHE_ROOT}/blender-${BLENDER_VERSION}-linux-x64"
           mkdir -p "${OUTPUT_DIR}"
 
