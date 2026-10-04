@@ -7,6 +7,7 @@ import { z } from "zod";
 import { renderMotion } from "./motion.js";
 import { editVideo } from "./video.js";
 import { uploadPublic } from "./storage.js";
+import { registerMcp } from "./mcp.js";
 
 const app = express();
 app.disable("x-powered-by");
@@ -64,6 +65,8 @@ app.post("/api/v1/render", async (req, res) => {
     await fs.rm(workDir, { recursive: true, force: true }).catch(() => {});
   }
 });
+registerMcp(app, { apiKey: API_KEY, port: PORT });
+
 app.use((err, _req, res, _next) => {
   if (err instanceof SyntaxError && "body" in err) return res.status(400).json({ error: "invalid_json", message: "Request body must be valid JSON." });
   console.error(err);
