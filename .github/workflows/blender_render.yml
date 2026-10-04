@@ -98,6 +98,13 @@ jobs:
           path: /home/runner/.cache/blender
           key: ${{ runner.os }}-blender-${{ steps.request.outputs.blender_version }}-linux-x64-v2
 
+      - name: Install Linux graphics runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends libegl1 libgl1
+
       - name: Install Blender
         env:
           BLENDER_VERSION: ${{ steps.request.outputs.blender_version }}
