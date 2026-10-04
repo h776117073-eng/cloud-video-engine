@@ -1,7 +1,7 @@
 # OUTPUT_NAME: ai-studio-e2e.mp4
 # BLENDER_VERSION: 5.2.2
 # REQUEST_MODE: chatgpt-direct
-# ATTEMPT: 5
+# ATTEMPT: 6
 import math
 import os
 
@@ -126,10 +126,6 @@ for frame, angle in ((75, math.radians(180)), (150, math.radians(360))):
     look_at(camera)
     camera.keyframe_insert(data_path="location", frame=frame)
     camera.keyframe_insert(data_path="rotation_euler", frame=frame)
-
-for fcurve in camera.animation_data.action.fcurves:
-    for keyframe in fcurve.keyframe_points:
-        keyframe.interpolation = "BEZIER"
 
 # Key lights.
 def add_area(name, location, energy, size, color):
