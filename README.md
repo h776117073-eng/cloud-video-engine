@@ -55,82 +55,70 @@ curl http://localhost:10000/health
 - Review Remotion's current licensing for your intended use.
 
 
-# Blender Cloud Rendering Agent
+# Direct ChatGPT Blender Rendering
 
-This repository now contains an automated headless Blender rendering pipeline driven by natural-language prompts.
+The Blender renderer is controlled directly by ChatGPT through the connected GitHub account. No external AI-agent service and no OpenAI API key are required by the repository.
 
-## Architecture
+## Control loop
 
-- `.github/workflows/blender_render.yml` — Ubuntu GitHub-hosted runner, Blender 5.2.2 LTS installation/cache, headless render, MP4 validation, artifact upload.
-- `tools/agent.py` — natural-language AI agent. Calls the OpenAI Responses API, generates a bpy script, validates it, Base64-encodes it, dispatches the workflow, polls the run, and returns the artifact URL.
-- `tools/render_dispatch.py` — GitHub REST Actions client for workflow dispatch, run polling, and artifact lookup.
-- `tools/AGENT_SYSTEM_PROMPT.md` — Blender runtime contract and bpy generation rules.
-- `tools/agent_tools.json` — function/tool schema for an agent framework.
-- `tools/examples/ai_studio.py` — complete 5-second AI STUDIO cinematic test scene.
-- `inputs/` and `outputs/` — local/project media directories.
+ChatGPT receives a natural-language request, writes `render_requests/current.py` in one GitHub commit, and the commit automatically starts the Blender workflow.
 
-## GitHub Actions contract
+The workflow:
 
-The workflow supports `workflow_dispatch` inputs:
+1. Checks out the repository on an Ubuntu GitHub-hosted runner.
+2. Installs or restores the pinned Blender Linux x64 LTS release.
+3. Reads the request script.
+4. Runs Blender in background/headless mode.
+5. Validates the MP4 with ffprobe.
+6. Uploads the MP4 as a GitHub Actions artifact.
+7. ChatGPT monitors the run, inspects logs/jobs if needed, and downloads the artifact on success.
 
-- `script_path` — repository-relative Python script path.
-- `script_base64` — Base64-encoded Python script. Exactly one of `script_path` or `script_base64` must be supplied.
-- `output_name` — simple MP4 filename.
-- `blender_version` — Blender Linux x64 release. The current pinned production default is 5.2.2 LTS.
+## Request file
 
-The runner executes Blender in background mode and sets `BLENDER_OUTPUT` to the required final path. The rendered file is uploaded as an Actions artifact with a 3-day retention period.
+Every request is represented by one file:
 
-## Agent setup
+`render_requests/current.py`
 
-Create a GitHub fine-grained token with Actions read/write permission for this repository and export it without committing it:
+The file starts with:
 
-    export GITHUB_TOKEN="..."
+    # OUTPUT_NAME: ai-studio.mp4
+    # BLENDER_VERSION: 5.2.2
 
-Create an OpenAI API key and export it:
+The remaining contents are the complete Blender `bpy` script.
 
-    export OPENAI_API_KEY="..."
+The script must read the workflow output location from:
 
-Install the small agent dependency set:
+    import os
+    output_path = os.environ.get("BLENDER_OUTPUT", "//render.mp4")
 
-    python3 -m pip install -r tools/requirements.txt
+and set:
 
-Run an end-to-end render:
+    scene.render.filepath = output_path
 
-    python3 tools/agent.py "Create a 5-second cinematic 3D video with a glowing gold title AI STUDIO and a smooth camera orbit."
+## Workflow
 
-The command prints JSON containing the generated script metadata and the GitHub artifact download URL.
+`.github/workflows/blender_render.yml` supports both:
 
-Generate without dispatching:
+- automatic rendering on a commit that changes `render_requests/current.py`;
+- manual `workflow_dispatch` with `script_path`, `script_base64`, `output_name`, and `blender_version`.
 
-    python3 tools/agent.py --no-dispatch --save-script outputs/generated.py "Create a 5-second cinematic 3D title."
+The automatic path is the normal ChatGPT control path and requires no browser interaction.
 
-The OpenAI API model defaults to `gpt-5.6` and can be changed with `OPENAI_MODEL` or `--model`.
+## Security model
 
-## Manual REST dispatch
+The repository does not contain GitHub, OpenAI, Render, or Supabase secrets for Blender control. The ChatGPT GitHub integration performs the repository write that acts as the workflow trigger.
 
-The GitHub endpoint is:
+The render job has `contents: read` permission only. Generated Blender code should remain deterministic and must not use subprocesses, network clients, dynamic code execution, or credential files.
 
-    POST https://api.github.com/repos/h776117073-eng/cloud-video-engine/actions/workflows/blender_render.yml/dispatches
+## Current Blender release
 
-The request body follows:
+The project pins Blender **5.2.2 LTS**. Blender 5.2 LTS is an actively maintained LTS branch, and Blender lists 5.2.2 as the current 5.2 LTS update. citeturn914562search1turn914562search3
 
-    {
-      "ref": "main",
-      "inputs": {
-        "script_base64": "<BASE64_SCRIPT>",
-        "output_name": "render.mp4",
-        "blender_version": "5.2.2"
-      }
-    }
+## Existing Cloud Video Engine
 
-The dispatcher uses the current GitHub API version header and then polls the workflow run until it reaches `completed`. After success it locates the `blender-render-<run_id>` artifact.
+The original Node.js/Express API remains available at:
 
-## Cost model
+- `GET /health`
+- `POST /api/v1/render`
 
-GitHub's current billing documentation states that standard GitHub-hosted runners are free for public repositories; private repositories use the included quota for the account plan and can incur charges after the quota is exceeded. Artifact and cache storage are also subject to plan limits. This project intentionally uses a standard Ubuntu runner and a short artifact retention period.
-
-## Security
-
-Do not put `GITHUB_TOKEN`, `OPENAI_API_KEY`, Supabase service-role keys, or other credentials in source files. Generated Blender code is statically checked for prohibited network/process execution before the workflow is dispatched.
-
-The GitHub artifact download URL is a GitHub API artifact archive URL. It downloads a ZIP archive containing the MP4 rather than exposing the raw MP4 as a permanent public URL.
+The Blender workflow is independent and can later be exposed through the existing MCP service.
