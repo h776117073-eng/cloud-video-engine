@@ -1,6 +1,9 @@
 name: Blender Cloud Render
 
 on:
+  push:
+    paths:
+      - "render_requests/current.py"
   pull_request:
     paths:
       - "render_requests/current.py"
