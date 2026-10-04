@@ -72,11 +72,9 @@ class AgentError(RuntimeError):
 
 
 def extract_python(text: str) -> str:
-    fenced = re.findall(
-        r"\`\`\`(?:python|py)?\s*(.*?)\`\`\`",
-        text,
-        flags=re.IGNORECASE | re.DOTALL,
-    )
+    marker = chr(96) * 3
+    pattern = re.escape(marker) + r"(?:python|py)?\s*(.*?)" + re.escape(marker)
+    fenced = re.findall(pattern, text, flags=re.IGNORECASE | re.DOTALL)
     if fenced:
         code = max(fenced, key=len).strip()
     else:
