@@ -14,7 +14,7 @@ for datablocks in (bpy.data.curves, bpy.data.meshes, bpy.data.materials, bpy.dat
     pass
 
 # Render settings.
-SCENE.render.engine = "BLENDER_EEVEE_NEXT"
+SCENE.render.engine = "BLENDER_EEVEE"
 SCENE.render.resolution_x = 1920
 SCENE.render.resolution_y = 1080
 SCENE.render.resolution_percentage = 100
