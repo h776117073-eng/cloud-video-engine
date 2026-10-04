@@ -4,9 +4,6 @@ on:
   pull_request:
     paths:
       - "render_requests/current.py"
-  push:
-    paths:
-      - "render_requests/current.py"
   workflow_dispatch:
     inputs:
       script_path:
@@ -56,7 +53,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [[ "${GITHUB_EVENT_NAME}" == "push" ]]; then
+          if [[ "${GITHUB_EVENT_NAME}" == "push" || "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
             REQUEST_FILE="${GITHUB_WORKSPACE}/render_requests/current.py"
             test -f "${REQUEST_FILE}"
             OUTPUT_NAME="$(sed -n 's/^# OUTPUT_NAME: //p' "${REQUEST_FILE}" | head -n 1)"
