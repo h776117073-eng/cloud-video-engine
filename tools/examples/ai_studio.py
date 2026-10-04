@@ -147,3 +147,7 @@ if hasattr(SCENE.view_settings, "look"):
         pass
 
 SCENE.frame_set(1)
+
+
+# Execute the actual headless animation render.
+bpy.ops.render.render(animation=True)
