@@ -99,7 +99,7 @@ and set:
 
 `.github/workflows/blender_render.yml` supports both:
 
-- automatic rendering on a commit that changes `render_requests/current.py`;
+- automatic rendering on a commit to `main` that changes `render_requests/current.py` (the normal direct ChatGPT path);
 - manual `workflow_dispatch` with `script_path`, `script_base64`, `output_name`, and `blender_version`.
 
 The automatic path is the normal ChatGPT control path and requires no browser interaction.

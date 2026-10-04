@@ -1,5 +1,7 @@
-# OUTPUT_NAME: ai-studio.mp4
+# OUTPUT_NAME: ai-studio-e2e.mp4
 # BLENDER_VERSION: 5.2.2
+# REQUEST_MODE: chatgpt-direct
+# ATTEMPT: 15
 import math
 import os
 
@@ -16,14 +18,20 @@ for datablocks in (bpy.data.curves, bpy.data.meshes, bpy.data.materials, bpy.dat
     pass
 
 # Render settings.
-SCENE.render.engine = "BLENDER_EEVEE_NEXT"
-SCENE.render.resolution_x = 1920
-SCENE.render.resolution_y = 1080
+SCENE.render.engine = "BLENDER_WORKBENCH"
+SCENE.display.shading.light = "STUDIO"
+SCENE.display.shading.color_type = "MATERIAL"
+SCENE.display.shading.show_shadows = True
+SCENE.display.shading.show_cavity = True
+SCENE.display.shading.cavity_type = "WORLD"
+SCENE.display.shading.background_type = "WORLD"
+SCENE.render.resolution_x = 640
+SCENE.render.resolution_y = 360
 SCENE.render.resolution_percentage = 100
-SCENE.render.fps = 30
+SCENE.render.fps = 24
 SCENE.frame_start = 1
-SCENE.frame_end = 150
-SCENE.render.image_settings.file_format = "FFMPEG"
+SCENE.frame_end = 120
+SCENE.render.image_settings.media_type = "VIDEO"
 SCENE.render.ffmpeg.format = "MPEG4"
 SCENE.render.ffmpeg.codec = "H264"
 SCENE.render.ffmpeg.audio_codec = "AAC"
@@ -114,7 +122,7 @@ camera.keyframe_insert(data_path="location", frame=1)
 camera.keyframe_insert(data_path="rotation_euler", frame=1)
 
 # One and a half cinematic orbits.
-for frame, angle in ((75, math.radians(180)), (150, math.radians(360))):
+for frame, angle in ((60, math.radians(180)), (120, math.radians(360))):
     radius = 12.0
     camera.location = (
         radius * math.cos(angle),
@@ -124,10 +132,6 @@ for frame, angle in ((75, math.radians(180)), (150, math.radians(360))):
     look_at(camera)
     camera.keyframe_insert(data_path="location", frame=frame)
     camera.keyframe_insert(data_path="rotation_euler", frame=frame)
-
-for fcurve in camera.animation_data.action.fcurves:
-    for keyframe in fcurve.keyframe_points:
-        keyframe.interpolation = "BEZIER"
 
 # Key lights.
 def add_area(name, location, energy, size, color):
@@ -145,23 +149,6 @@ add_area("Key", (4, -4, 7), 1200, 5.0, (1.0, 0.62, 0.28))
 add_area("Fill", (-4, -1, 4), 700, 4.0, (0.25, 0.45, 1.0))
 add_area("Rim", (0, 5, 6), 1000, 3.0, (1.0, 0.25, 0.05))
 
-# Compositor glow.
-SCENE.use_nodes = True
-tree = SCENE.node_tree
-tree.nodes.clear()
-rlayers = tree.nodes.new("CompositorNodeRLayers")
-glare = tree.nodes.new("CompositorNodeGlare")
-glare.glare_type = "FOG_GLOW"
-glare.quality = "HIGH"
-glare.threshold = 0.8
-glare.size = 7
-gamma = tree.nodes.new("CompositorNodeGamma")
-gamma.inputs["Gamma"].default_value = 0.92
-composite = tree.nodes.new("CompositorNodeComposite")
-tree.links.new(rlayers.outputs["Image"], glare.inputs["Image"])
-tree.links.new(glare.outputs["Image"], gamma.inputs["Image"])
-tree.links.new(gamma.outputs["Image"], composite.inputs["Image"])
-
 # Color management.
 if hasattr(SCENE.view_settings, "look"):
     try:
@@ -170,3 +157,7 @@ if hasattr(SCENE.view_settings, "look"):
         pass
 
 SCENE.frame_set(1)
+
+
+# Execute the actual headless animation render.
+bpy.ops.render.render(animation=True)
