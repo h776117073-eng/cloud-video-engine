@@ -1,5 +1,6 @@
-# OUTPUT_NAME: ai-studio.mp4
+# OUTPUT_NAME: ai-studio-e2e.mp4
 # BLENDER_VERSION: 5.2.2
+# REQUEST_MODE: chatgpt-direct
 import math
 import os
 
