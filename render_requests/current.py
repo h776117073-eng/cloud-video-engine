@@ -1,7 +1,7 @@
 # OUTPUT_NAME: ai-studio-e2e.mp4
 # BLENDER_VERSION: 5.2.2
 # REQUEST_MODE: chatgpt-direct
-# ATTEMPT: 10
+# ATTEMPT: 11
 import math
 import os
 
@@ -19,12 +19,12 @@ for datablocks in (bpy.data.curves, bpy.data.meshes, bpy.data.materials, bpy.dat
 
 # Render settings.
 SCENE.render.engine = "BLENDER_EEVEE"
-SCENE.render.resolution_x = 1920
-SCENE.render.resolution_y = 1080
+SCENE.render.resolution_x = 1280
+SCENE.render.resolution_y = 720
 SCENE.render.resolution_percentage = 100
-SCENE.render.fps = 30
+SCENE.render.fps = 24
 SCENE.frame_start = 1
-SCENE.frame_end = 150
+SCENE.frame_end = 120
 SCENE.render.image_settings.media_type = "VIDEO"
 SCENE.render.ffmpeg.format = "MPEG4"
 SCENE.render.ffmpeg.codec = "H264"
@@ -116,7 +116,7 @@ camera.keyframe_insert(data_path="location", frame=1)
 camera.keyframe_insert(data_path="rotation_euler", frame=1)
 
 # One and a half cinematic orbits.
-for frame, angle in ((75, math.radians(180)), (150, math.radians(360))):
+for frame, angle in ((60, math.radians(180)), (120, math.radians(360))):
     radius = 12.0
     camera.location = (
         radius * math.cos(angle),
