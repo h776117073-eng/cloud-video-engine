@@ -1,7 +1,7 @@
 # OUTPUT_NAME: ai-studio-e2e.mp4
 # BLENDER_VERSION: 5.2.2
 # REQUEST_MODE: chatgpt-direct
-# ATTEMPT: 6
+# ATTEMPT: 7
 import math
 import os
 
@@ -142,23 +142,6 @@ def add_area(name, location, energy, size, color):
 add_area("Key", (4, -4, 7), 1200, 5.0, (1.0, 0.62, 0.28))
 add_area("Fill", (-4, -1, 4), 700, 4.0, (0.25, 0.45, 1.0))
 add_area("Rim", (0, 5, 6), 1000, 3.0, (1.0, 0.25, 0.05))
-
-# Compositor glow.
-SCENE.use_nodes = True
-tree = SCENE.node_tree
-tree.nodes.clear()
-rlayers = tree.nodes.new("CompositorNodeRLayers")
-glare = tree.nodes.new("CompositorNodeGlare")
-glare.glare_type = "FOG_GLOW"
-glare.quality = "HIGH"
-glare.threshold = 0.8
-glare.size = 7
-gamma = tree.nodes.new("CompositorNodeGamma")
-gamma.inputs["Gamma"].default_value = 0.92
-composite = tree.nodes.new("CompositorNodeComposite")
-tree.links.new(rlayers.outputs["Image"], glare.inputs["Image"])
-tree.links.new(glare.outputs["Image"], gamma.inputs["Image"])
-tree.links.new(gamma.outputs["Image"], composite.inputs["Image"])
 
 # Color management.
 if hasattr(SCENE.view_settings, "look"):
