@@ -1,0 +1,158 @@
+name: Blender Cloud Render
+
+on:
+  workflow_dispatch:
+    inputs:
+      script_path:
+        description: "Repository-relative Blender Python script path (use this OR script_base64)"
+        required: false
+        type: string
+      script_base64:
+        description: "Base64-encoded Blender Python script (use this OR script_path)"
+        required: false
+        type: string
+      output_name:
+        description: "Final MP4 filename"
+        required: true
+        default: "render.mp4"
+        type: string
+      blender_version:
+        description: "Official Blender Linux x64 release"
+        required: true
+        default: "5.2.2"
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: blender-render-${{ github.repository }}-${{ github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  render:
+    name: Render Blender scene
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      BLENDER_VERSION: ${{ inputs.blender_version }}
+      OUTPUT_NAME: ${{ inputs.output_name }}
+      OUTPUT_DIR: ${{ github.workspace }}/outputs
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate render inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -n "${{ inputs.script_path }}" && -n "${{ inputs.script_base64 }}" ]]; then
+            echo "Provide only one of script_path or script_base64." >&2
+            exit 2
+          fi
+          if [[ -z "${{ inputs.script_path }}" && -z "${{ inputs.script_base64 }}" ]]; then
+            echo "One of script_path or script_base64 is required." >&2
+            exit 2
+          fi
+          if [[ ! "${OUTPUT_NAME}" =~ ^[A-Za-z0-9._-]+\.mp4$ ]]; then
+            echo "output_name must be a simple .mp4 filename without directories." >&2
+            exit 2
+          fi
+          if [[ ! "${BLENDER_VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "blender_version must look like X.Y.Z." >&2
+            exit 2
+          fi
+          mkdir -p "${OUTPUT_DIR}" "${RUNNER_TOOL_CACHE}/blender/${BLENDER_VERSION}"
+
+      - name: Restore Blender cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.tool_cache }}/blender/${{ inputs.blender_version }}
+          key: ${{ runner.os }}-blender-${{ inputs.blender_version }}-linux-x64-v1
+
+      - name: Install Blender
+        shell: bash
+        run: |
+          set -euo pipefail
+          CACHE_ROOT="${RUNNER_TOOL_CACHE}/blender/${BLENDER_VERSION}"
+          INSTALL_DIR="${CACHE_ROOT}/blender-${BLENDER_VERSION}-linux-x64"
+          ARCHIVE="${CACHE_ROOT}/blender-${BLENDER_VERSION}-linux-x64.tar.xz"
+          URL="https://download.blender.org/release/Blender${BLENDER_VERSION%.*}/blender-${BLENDER_VERSION}-linux-x64.tar.xz"
+          SHA_URL="${URL%.tar.xz}.sha256"
+          mkdir -p "${CACHE_ROOT}"
+
+          if [[ ! -x "${INSTALL_DIR}/blender" ]]; then
+            if [[ ! -f "${ARCHIVE}" ]]; then
+              curl --fail --location --retry 4 --retry-all-errors --output "${ARCHIVE}" "${URL}"
+            fi
+            curl --fail --location --retry 4 --retry-all-errors --output "${CACHE_ROOT}/blender.sha256" "${SHA_URL}"
+            grep "blender-${BLENDER_VERSION}-linux-x64.tar.xz" "${CACHE_ROOT}/blender.sha256" > "${CACHE_ROOT}/expected.sha256"
+            (cd "${CACHE_ROOT}" && sha256sum -c expected.sha256)
+            tar -xJf "${ARCHIVE}" -C "${CACHE_ROOT}"
+          fi
+
+          test -x "${INSTALL_DIR}/blender"
+          "${INSTALL_DIR}/blender" --background --version
+
+      - name: Prepare Blender script
+        id: prepare
+        shell: bash
+        run: |
+          set -euo pipefail
+          SCRIPT_FILE="${RUNNER_TEMP}/render_script.py"
+
+          if [[ -n "${{ inputs.script_base64 }}" ]]; then
+            printf '%s' "${{ inputs.script_base64 }}" | base64 --decode > "${SCRIPT_FILE}"
+          else
+            SCRIPT_PATH="${{ inputs.script_path }}"
+            case "${SCRIPT_PATH}" in
+              /*|../*|*/../*|*'..\\'*) echo "script_path must stay inside the repository." >&2; exit 2 ;;
+            esac
+            test -f "${GITHUB_WORKSPACE}/${SCRIPT_PATH}"
+            cp "${GITHUB_WORKSPACE}/${SCRIPT_PATH}" "${SCRIPT_FILE}"
+          fi
+
+          test -s "${SCRIPT_FILE}"
+          echo "script_file=${SCRIPT_FILE}" >> "${GITHUB_OUTPUT}"
+
+      - name: Render video with Blender headless
+        shell: bash
+        env:
+          BLENDER_OUTPUT: ${{ env.OUTPUT_DIR }}/${{ env.OUTPUT_NAME }}
+        run: |
+          set -euo pipefail
+          CACHE_ROOT="${RUNNER_TOOL_CACHE}/blender/${BLENDER_VERSION}"
+          INSTALL_DIR="${CACHE_ROOT}/blender-${BLENDER_VERSION}-linux-x64"
+          mkdir -p "${OUTPUT_DIR}"
+
+          "${INSTALL_DIR}/blender"             --background             --python "${{ steps.prepare.outputs.script_file }}"             --python-exit-code 1
+
+          if [[ ! -s "${BLENDER_OUTPUT}" ]]; then
+            CANDIDATE="$(find "${GITHUB_WORKSPACE}" -type f -iname '*.mp4' -not -path "${OUTPUT_DIR}/*" -printf '%T@ %p\n' 2>/dev/null | sort -nr | head -n 1 | cut -d' ' -f2- || true)"
+            if [[ -n "${CANDIDATE}" && -s "${CANDIDATE}" ]]; then
+              cp "${CANDIDATE}" "${BLENDER_OUTPUT}"
+            fi
+          fi
+
+          test -s "${BLENDER_OUTPUT}"
+          ffprobe -v error -show_entries format=duration,size -of default=noprint_wrappers=1 "${BLENDER_OUTPUT}"
+
+      - name: Upload rendered MP4
+        uses: actions/upload-artifact@v4
+        with:
+          name: blender-render-${{ github.run_id }}
+          path: ${{ env.OUTPUT_DIR }}/${{ env.OUTPUT_NAME }}
+          if-no-files-found: error
+          retention-days: 3
+          compression-level: 0
+
+      - name: Publish result links
+        shell: bash
+        run: |
+          {
+            echo "## Blender render complete"
+            echo
+            echo "- File: \`${OUTPUT_NAME}\`"
+            echo "- Artifact: \`blender-render-${{ github.run_id }}\`"
+            echo "- Run: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          } >> "${GITHUB_STEP_SUMMARY}"
