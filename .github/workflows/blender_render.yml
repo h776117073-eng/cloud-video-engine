@@ -38,8 +38,6 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     env:
-      BLENDER_VERSION: ${{ steps.request.outputs.blender_version }}
-      OUTPUT_NAME: ${{ steps.request.outputs.output_name }}
       OUTPUT_DIR: ${{ github.workspace }}/outputs
     steps:
       - name: Checkout repository
@@ -51,7 +49,7 @@ jobs:
           INPUT_SCRIPT_PATH: ${{ inputs.script_path }}
           INPUT_SCRIPT_BASE64: ${{ inputs.script_base64 }}
           INPUT_OUTPUT_NAME: ${{ inputs.output_name }}
-          INPUT_BLENDER_VERSION: ${{ steps.request.outputs.blender_version }}
+          INPUT_BLENDER_VERSION: ${{ inputs.blender_version }}
         shell: bash
         run: |
           set -euo pipefail
@@ -101,6 +99,8 @@ jobs:
           key: ${{ runner.os }}-blender-${{ steps.request.outputs.blender_version }}-linux-x64-v2
 
       - name: Install Blender
+        env:
+          BLENDER_VERSION: ${{ steps.request.outputs.blender_version }}
         shell: bash
         run: |
           set -euo pipefail
@@ -125,9 +125,11 @@ jobs:
           "${INSTALL_DIR}/blender" --background --version
 
       - name: Render video with Blender headless
-        shell: bash
         env:
-          BLENDER_OUTPUT: ${{ env.OUTPUT_DIR }}/${{ env.OUTPUT_NAME }}
+          BLENDER_VERSION: ${{ steps.request.outputs.blender_version }}
+          OUTPUT_NAME: ${{ steps.request.outputs.output_name }}
+          BLENDER_OUTPUT: ${{ github.workspace }}/outputs/${{ steps.request.outputs.output_name }}
+        shell: bash
         run: |
           set -euo pipefail
           CACHE_ROOT="/home/runner/.cache/blender/${BLENDER_VERSION}"
@@ -150,7 +152,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: blender-render-${{ github.run_id }}
-          path: ${{ env.OUTPUT_DIR }}/${{ env.OUTPUT_NAME }}
+          path: ${{ github.workspace }}/outputs/${{ steps.request.outputs.output_name }}
           if-no-files-found: error
           retention-days: 3
           compression-level: 0
