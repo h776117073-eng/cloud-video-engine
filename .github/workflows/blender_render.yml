@@ -108,7 +108,7 @@ jobs:
           INSTALL_DIR="${CACHE_ROOT}/blender-${BLENDER_VERSION}-linux-x64"
           ARCHIVE="${CACHE_ROOT}/blender-${BLENDER_VERSION}-linux-x64.tar.xz"
           URL="https://download.blender.org/release/Blender${BLENDER_VERSION%.*}/blender-${BLENDER_VERSION}-linux-x64.tar.xz"
-          SHA_URL="${URL%.tar.xz}.sha256"
+          SHA_URL="https://download.blender.org/release/Blender${BLENDER_VERSION%.*}/blender-${BLENDER_VERSION}.sha256"
           mkdir -p "${CACHE_ROOT}"
 
           if [[ ! -x "${INSTALL_DIR}/blender" ]]; then
@@ -116,7 +116,7 @@ jobs:
               curl --fail --location --retry 4 --retry-all-errors --output "${ARCHIVE}" "${URL}"
             fi
             curl --fail --location --retry 4 --retry-all-errors --output "${CACHE_ROOT}/blender.sha256" "${SHA_URL}"
-            grep "blender-${BLENDER_VERSION}-linux-x64.tar.xz" "${CACHE_ROOT}/blender.sha256" > "${CACHE_ROOT}/expected.sha256"
+            grep "blender-${BLENDER_VERSION}-linux-x64.tar.xz" "${CACHE_ROOT}/blender.sha256" | grep -E "^[0-9a-fA-F]{64}" > "${CACHE_ROOT}/expected.sha256"
             (cd "${CACHE_ROOT}" && sha256sum -c expected.sha256)
             tar -xJf "${ARCHIVE}" -C "${CACHE_ROOT}"
           fi
