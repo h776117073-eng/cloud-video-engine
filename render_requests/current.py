@@ -1,7 +1,7 @@
 # OUTPUT_NAME: ai-studio-e2e.mp4
 # BLENDER_VERSION: 5.2.2
 # REQUEST_MODE: chatgpt-direct
-# ATTEMPT: 3
+# ATTEMPT: 4
 import math
 import os
 
@@ -18,7 +18,7 @@ for datablocks in (bpy.data.curves, bpy.data.meshes, bpy.data.materials, bpy.dat
     pass
 
 # Render settings.
-SCENE.render.engine = "BLENDER_EEVEE_NEXT"
+SCENE.render.engine = "BLENDER_EEVEE"
 SCENE.render.resolution_x = 1920
 SCENE.render.resolution_y = 1080
 SCENE.render.resolution_percentage = 100
