@@ -7,7 +7,7 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
-    "check": "node --check src/server.js && node --check src/video.js && node --check src/storage.js"
+    "check": "node --check src/server.js && node --check src/mcp.js && node --check src/video.js && node --check src/storage.js"
   },
   "dependencies": {
     "@remotion/bundler": "4.0.320",
