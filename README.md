@@ -8,6 +8,18 @@ A Node.js/Express API for deterministic motion graphics (Remotion + React) and b
 
 The render endpoint requires `Authorization: Bearer <API_KEY>`. Configure a strong random API_KEY; requests are rejected if it is unset.
 
+## ChatGPT custom connection (MCP)
+
+The service exposes a stateless Streamable HTTP MCP endpoint at `POST /mcp`.
+Configure the custom connection with this endpoint:
+
+`https://cloud-video-engine.onrender.com/mcp`
+
+Authentication: HTTP Bearer token using the same value configured as Render's `API_KEY`.
+Do not paste the token into source files, GitHub, or chat messages. After connecting, scan tools; the server exposes `cloud_video_health` and `render_video`.
+
+The MCP endpoint currently uses bearer-token authentication, not OAuth. It returns JSON-RPC responses over Streamable HTTP and does not provide an SSE stream. The custom MCP connection feature is available only on supported ChatGPT plans/workspaces; if the app creation screen is unavailable, check your plan and developer-mode/workspace permissions.
+
 ## Setup
 1. Create a Supabase project and a Storage bucket named `video-renders`. For the current implementation, make the bucket public so returned video URLs are accessible. Do not expose the service-role key.
 2. Push this repository to GitHub.
