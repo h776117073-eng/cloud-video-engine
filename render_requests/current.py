@@ -1,7 +1,7 @@
 # OUTPUT_NAME: ai-studio-e2e.mp4
 # BLENDER_VERSION: 5.2.2
 # REQUEST_MODE: chatgpt-direct
-# ATTEMPT: 4
+# ATTEMPT: 5
 import math
 import os
 
@@ -25,7 +25,7 @@ SCENE.render.resolution_percentage = 100
 SCENE.render.fps = 30
 SCENE.frame_start = 1
 SCENE.frame_end = 150
-SCENE.render.image_settings.file_format = "FFMPEG"
+SCENE.render.image_settings.media_type = "VIDEO"
 SCENE.render.ffmpeg.format = "MPEG4"
 SCENE.render.ffmpeg.codec = "H264"
 SCENE.render.ffmpeg.audio_codec = "AAC"
