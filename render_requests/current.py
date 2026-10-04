@@ -1,7 +1,7 @@
 # OUTPUT_NAME: ai-studio-e2e.mp4
 # BLENDER_VERSION: 5.2.2
 # REQUEST_MODE: chatgpt-direct
-# ATTEMPT: 7
+# ATTEMPT: 8
 import math
 import os
 
@@ -151,3 +151,7 @@ if hasattr(SCENE.view_settings, "look"):
         pass
 
 SCENE.frame_set(1)
+
+
+# Execute the actual headless animation render.
+bpy.ops.render.render(animation=True)
