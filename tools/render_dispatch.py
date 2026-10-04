@@ -23,7 +23,7 @@ import requests
 API_ROOT = "https://api.github.com"
 API_VERSION = "2026-03-10"
 DEFAULT_REPO = "h776117073-eng/cloud-video-engine"
-DEFAULT_WORKFLOW = ".github/workflows/blender_render.yml"
+DEFAULT_WORKFLOW = "blender_render.yml"
 DEFAULT_REF = "main"
 DEFAULT_BLENDER_VERSION = "5.2.2"
 
